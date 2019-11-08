@@ -85,7 +85,6 @@ namespace ts {
                 usefsevents: WatchFileKind.UseFsEvents,
                 usefseventsonparentdirectory: WatchFileKind.UseFsEventsOnParentDirectory,
             }),
-            paramType: Diagnostics.STRATEGY,
             category: Diagnostics.Advanced_Options,
             description: Diagnostics.Specify_strategy_for_watching_file_Colon_FixedPollingInterval_default_PriorityPollingInterval_DynamicPriorityPolling_UseFsEvents_UseFsEventsOnParentDirectory,
         },
@@ -96,7 +95,6 @@ namespace ts {
                 fixedpollinginterval: WatchDirectoryKind.FixedPollingInterval,
                 dynamicprioritypolling: WatchDirectoryKind.DynamicPriorityPolling,
             }),
-            paramType: Diagnostics.STRATEGY,
             category: Diagnostics.Advanced_Options,
             description: Diagnostics.Specify_strategy_for_watching_directory_on_platforms_that_don_t_support_recursive_watching_natively_Colon_UseFsEvents_default_FixedPollingInterval_DynamicPriorityPolling,
         },
@@ -107,9 +105,14 @@ namespace ts {
                 priorityinterval: PollingWatchKind.PriorityInterval,
                 dynamicpriority: PollingWatchKind.DynamicPriority,
             }),
-            paramType: Diagnostics.STRATEGY,
             category: Diagnostics.Advanced_Options,
             description: Diagnostics.Specify_strategy_for_creating_a_polling_watch_when_it_fails_to_create_using_file_system_events_Colon_FixedInterval_default_PriorityInterval_DynamicPriority,
+        },
+        {
+            name: "delayChildWatchDirectory",
+            type: "boolean",
+            category: Diagnostics.Advanced_Options,
+            description: Diagnostics.Delay_and_batch_update_child_directory_watches_on_platforms_that_don_t_support_recursive_watching_natively,
         },
     ];
 

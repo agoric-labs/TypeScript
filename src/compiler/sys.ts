@@ -444,6 +444,8 @@ namespace ts {
         getAccessibleSortedChildDirectories(path: string): readonly string[];
         directoryExists(dir: string): boolean;
         realpath(s: string): string;
+        setTimeout: System["setTimeout"];
+        clearTimeout: System["clearTimeout"];
     }
 
     /**
@@ -467,6 +469,8 @@ namespace ts {
         const callbackCache = createMultiMap<DirectoryWatcherCallback>();
         const filePathComparer = getStringComparer(!host.useCaseSensitiveFileNames);
         const toCanonicalFilePath = createGetCanonicalFileName(host.useCaseSensitiveFileNames);
+        const dirtyCache = createMap<{ dirName: string; options: CompilerOptions | undefined }>();
+        let dirtyTimeout: any;
 
         return (dirName, callback, recursive, options) => recursive ?
             createDirectoryWatcher(dirName, options, callback) :
@@ -494,13 +498,13 @@ namespace ts {
                         });
 
                         // Iterate through existing children and update the watches if needed
-                        updateChildWatches(dirName, dirPath, options);
+                        updateChildWatchesOrDelay(dirName, dirPath, options);
                     }, /*recursive*/ false, options),
                     refCount: 1,
                     childWatches: emptyArray
                 };
                 cache.set(dirPath, directoryWatcher);
-                updateChildWatches(dirName, dirPath, options);
+                updateChildWatchesOrDelay(dirName, dirPath, options);
             }
 
             if (callback) {
@@ -517,10 +521,37 @@ namespace ts {
                     if (directoryWatcher.refCount) return;
 
                     cache.delete(dirPath);
+                    dirtyCache.delete(dirPath);
                     closeFileWatcherOf(directoryWatcher);
                     directoryWatcher.childWatches.forEach(closeFileWatcher);
                 }
             };
+        }
+
+        function updateChildWatchesOrDelay(dirName: string, dirPath: Path, options: CompilerOptions | undefined) {
+            if (options && options.delayChildWatchDirectory) {
+                if (!dirtyCache.has(dirPath)) dirtyCache.set(dirPath, { dirName, options });
+                if (dirtyTimeout !== undefined) {
+                    host.clearTimeout!(dirtyTimeout);
+                    dirtyTimeout = undefined;
+                }
+                // Delay by 1s
+                dirtyTimeout = host.setTimeout!(onDirtyTimeout, 1000);
+            }
+            else {
+                updateChildWatches(dirName, dirPath, options);
+            }
+        }
+
+        function onDirtyTimeout() {
+            dirtyTimeout = undefined;
+            while (dirtyTimeout === undefined &&
+                dirtyCache.size) {
+                const { value } = dirtyCache.entries().next();
+                const [dirPath, {dirName, options }] = Debug.assertDefined(value);
+                dirtyCache.delete(dirPath);
+                updateChildWatches(dirName, dirPath as Path, options);
+            }
         }
 
         function updateChildWatches(dirName: string, dirPath: Path, options: CompilerOptions | undefined) {
@@ -638,6 +669,7 @@ namespace ts {
         directoryExists: System["directoryExists"];
         getAccessibleSortedChildDirectories(path: string): readonly string[];
         realpath(s: string): string;
+        clearTimeout: System["clearTimeout"];
         // For backward compatibility environment variables
         tscWatchFile: string | undefined;
         useNonPollingWatchers?: boolean;
@@ -649,6 +681,7 @@ namespace ts {
         pollingWatchFile,
         getModifiedTime,
         setTimeout,
+        clearTimeout,
         fsWatch,
         fileExists,
         useCaseSensitiveFileNames,
@@ -761,7 +794,9 @@ namespace ts {
                     directoryExists,
                     getAccessibleSortedChildDirectories,
                     watchDirectory: nonRecursiveWatchDirectory,
-                    realpath
+                    realpath,
+                    setTimeout,
+                    clearTimeout
                 });
             }
             return hostRecursiveDirectoryWatcher(directoryName, callback, recursive, options);
@@ -1068,6 +1103,7 @@ namespace ts {
                 pollingWatchFile: createSingleFileWatcherPerName(fsWatchFileWorker, useCaseSensitiveFileNames),
                 getModifiedTime,
                 setTimeout,
+                clearTimeout,
                 fsWatch,
                 useCaseSensitiveFileNames,
                 fileExists,
