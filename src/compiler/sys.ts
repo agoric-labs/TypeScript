@@ -448,13 +448,18 @@ namespace ts {
         clearTimeout: System["clearTimeout"];
     }
 
+    export interface DirectoryWatcherSupportingRecursive {
+        watchDirectory: HostWatchDirectory;
+        restartRecursiveWatchUpdateTimer: () => void;
+    }
+
     /**
      * Watch the directory recursively using host provided method to watch child directories
      * that means if this is recursive watcher, watch the children directories as well
      * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
      */
     /*@internal*/
-    export function createDirectoryWatcherSupportingRecursive(host: RecursiveDirectoryWatcherHost): HostWatchDirectory {
+    export function createDirectoryWatcherSupportingRecursive(host: RecursiveDirectoryWatcherHost): DirectoryWatcherSupportingRecursive {
         interface ChildDirectoryWatcher extends FileWatcher {
             dirName: string;
         }
@@ -469,12 +474,15 @@ namespace ts {
         const callbackCache = createMultiMap<DirectoryWatcherCallback>();
         const filePathComparer = getStringComparer(!host.useCaseSensitiveFileNames);
         const toCanonicalFilePath = createGetCanonicalFileName(host.useCaseSensitiveFileNames);
-        const dirtyCache = createMap<{ dirName: string; options: CompilerOptions | undefined }>();
-        let dirtyTimeout: any;
+        const recursiveUpdateCache = createMap<{ dirName: string; options: CompilerOptions | undefined }>();
+        let recursiveUpdateTimeout: any;
 
-        return (dirName, callback, recursive, options) => recursive ?
-            createDirectoryWatcher(dirName, options, callback) :
-            host.watchDirectory(dirName, callback, recursive, options);
+        return {
+            watchDirectory: (dirName, callback, recursive, options) => recursive ?
+                createDirectoryWatcher(dirName, options, callback) :
+                host.watchDirectory(dirName, callback, recursive, options),
+            restartRecursiveWatchUpdateTimer
+        };
 
         /**
          * Create the directory watcher for the dirPath.
@@ -503,6 +511,7 @@ namespace ts {
                     refCount: 1,
                     childWatches: emptyArray
                 };
+                sysLog(`sysLog:: Created ${dirPath} Watch`);
                 cache.set(dirPath, directoryWatcher);
                 updateChildWatchesOrDelay(dirName, dirPath, options);
             }
@@ -521,7 +530,7 @@ namespace ts {
                     if (directoryWatcher.refCount) return;
 
                     cache.delete(dirPath);
-                    dirtyCache.delete(dirPath);
+                    recursiveUpdateCache.delete(dirPath);
                     closeFileWatcherOf(directoryWatcher);
                     directoryWatcher.childWatches.forEach(closeFileWatcher);
                 }
@@ -530,26 +539,36 @@ namespace ts {
 
         function updateChildWatchesOrDelay(dirName: string, dirPath: Path, options: CompilerOptions | undefined) {
             if (options && options.delayChildWatchDirectory) {
-                if (!dirtyCache.has(dirPath)) dirtyCache.set(dirPath, { dirName, options });
-                if (dirtyTimeout !== undefined) {
-                    host.clearTimeout!(dirtyTimeout);
-                    dirtyTimeout = undefined;
-                }
-                // Delay by 1s
-                dirtyTimeout = host.setTimeout!(onDirtyTimeout, 1000);
+                if (!cache.has(dirPath)) return;
+                if (!recursiveUpdateCache.has(dirPath)) recursiveUpdateCache.set(dirPath, { dirName, options });
+                sysLog(`sysLog:: Postponing ${dirPath} update`);
+                restartRecursiveWatchUpdateTimer();
             }
             else {
                 updateChildWatches(dirName, dirPath, options);
             }
         }
 
-        function onDirtyTimeout() {
-            dirtyTimeout = undefined;
-            while (dirtyTimeout === undefined &&
-                dirtyCache.size) {
-                const { value } = dirtyCache.entries().next();
+        function restartRecursiveWatchUpdateTimer() {
+            if (!recursiveUpdateCache.size) return;
+            sysLog(`sysLog:: Recursive Watcher timer:: ${recursiveUpdateTimeout === undefined ? "fresh" : "restarting"}`);
+            if (recursiveUpdateTimeout !== undefined) {
+                host.clearTimeout!(recursiveUpdateTimeout);
+                recursiveUpdateTimeout = undefined;
+            }
+            // Delay by 1/2s
+            recursiveUpdateTimeout = host.setTimeout!(onRecursiveWatchUpdateTimeout, PollingInterval.Medium);
+        }
+
+        function onRecursiveWatchUpdateTimeout() {
+            sysLog(`sysLog:: Timeout onRecursiveWatchUpdateTimeout::`);
+            recursiveUpdateTimeout = undefined;
+            while (recursiveUpdateTimeout === undefined &&
+                recursiveUpdateCache.size) {
+                const { value } = recursiveUpdateCache.entries().next();
                 const [dirPath, {dirName, options }] = Debug.assertDefined(value);
-                dirtyCache.delete(dirPath);
+                sysLog(`sysLog:: Updating ${dirPath}`);
+                recursiveUpdateCache.delete(dirPath);
                 updateChildWatches(dirName, dirPath as Path, options);
             }
         }
@@ -677,6 +696,13 @@ namespace ts {
     }
 
     /*@internal*/
+    export interface SystemWatchFunctions {
+        watchFile: HostWatchFile;
+        watchDirectory: HostWatchDirectory;
+        restartRecursiveWatchUpdateTimer: () => void;
+    }
+
+    /*@internal*/
     export function createSystemWatchFunctions({
         pollingWatchFile,
         getModifiedTime,
@@ -692,13 +718,15 @@ namespace ts {
         tscWatchFile,
         useNonPollingWatchers,
         tscWatchDirectory,
-    }: CreateSystemWatchFunctions): { watchFile: HostWatchFile; watchDirectory: HostWatchDirectory; } {
+    }: CreateSystemWatchFunctions): SystemWatchFunctions {
         let dynamicPollingWatchFile: HostWatchFile | undefined;
         let nonPollingWatchFile: HostWatchFile | undefined;
         let hostRecursiveDirectoryWatcher: HostWatchDirectory | undefined;
+        let restartRecursiveWatchUpdateTimer: (() => void) | undefined;
         return {
             watchFile,
-            watchDirectory
+            watchDirectory,
+            restartRecursiveWatchUpdateTimer: () => restartRecursiveWatchUpdateTimer || noop
         };
 
         function watchFile(fileName: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, options: CompilerOptions | undefined): FileWatcher {
@@ -789,7 +817,9 @@ namespace ts {
             }
 
             if (!hostRecursiveDirectoryWatcher) {
-                hostRecursiveDirectoryWatcher = createDirectoryWatcherSupportingRecursive({
+                ({
+                    watchDirectory: hostRecursiveDirectoryWatcher,
+                    restartRecursiveWatchUpdateTimer } = createDirectoryWatcherSupportingRecursive({
                     useCaseSensitiveFileNames,
                     directoryExists,
                     getAccessibleSortedChildDirectories,
@@ -797,7 +827,7 @@ namespace ts {
                     realpath,
                     setTimeout,
                     clearTimeout
-                });
+                }));
             }
             return hostRecursiveDirectoryWatcher(directoryName, callback, recursive, options);
         }
@@ -972,6 +1002,7 @@ namespace ts {
          */
         watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: CompilerOptions): FileWatcher;
         watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: CompilerOptions): FileWatcher;
+        /*@internal*/ restartRecursiveWatchUpdateTimer?(): void;
         resolvePath(path: string): string;
         fileExists(path: string): boolean;
         directoryExists(path: string): boolean;
@@ -1099,7 +1130,7 @@ namespace ts {
             const platform: string = _os.platform();
             const useCaseSensitiveFileNames = isFileSystemCaseSensitive();
             const fsSupportsRecursiveFsWatch = isNode4OrLater && (process.platform === "win32" || process.platform === "darwin");
-            const { watchFile, watchDirectory } = createSystemWatchFunctions({
+            const { watchFile, watchDirectory, restartRecursiveWatchUpdateTimer } = createSystemWatchFunctions({
                 pollingWatchFile: createSingleFileWatcherPerName(fsWatchFileWorker, useCaseSensitiveFileNames),
                 getModifiedTime,
                 setTimeout,
@@ -1131,6 +1162,7 @@ namespace ts {
                 writeFile,
                 watchFile,
                 watchDirectory,
+                restartRecursiveWatchUpdateTimer,
                 resolvePath: path => _path.resolve(path),
                 fileExists,
                 directoryExists,

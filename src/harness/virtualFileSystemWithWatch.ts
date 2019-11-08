@@ -391,6 +391,7 @@ interface Array<T> { length: number; [n: number]: T; }`
         public require: ((initialPath: string, moduleName: string) => RequireResult) | undefined;
         watchFile: HostWatchFile;
         watchDirectory: HostWatchDirectory;
+        restartRecursiveWatchUpdateTimer: () => void;
         constructor(
             public withSafeList: boolean,
             fileOrFolderorSymLinkList: readonly FileOrFolderOrSymLink[],
@@ -411,7 +412,7 @@ interface Array<T> { length: number; [n: number]: T; }`
             this.runWithFallbackPolling = !!runWithFallbackPolling;
             const tscWatchFile = this.environmentVariables && this.environmentVariables.get("TSC_WATCHFILE");
             const tscWatchDirectory = this.environmentVariables && this.environmentVariables.get("TSC_WATCHDIRECTORY");
-            const { watchFile, watchDirectory } = createSystemWatchFunctions({
+            const { watchFile, watchDirectory, restartRecursiveWatchUpdateTimer } = createSystemWatchFunctions({
                 // We dont have polling watch file
                 // it is essentially fsWatch but lets get that separate from fsWatch and
                 // into watchedFiles for easier testing
@@ -436,6 +437,7 @@ interface Array<T> { length: number; [n: number]: T; }`
             });
             this.watchFile = watchFile;
             this.watchDirectory = watchDirectory;
+            this.restartRecursiveWatchUpdateTimer = restartRecursiveWatchUpdateTimer;
             this.reloadFS(fileOrFolderorSymLinkList);
         }
 
