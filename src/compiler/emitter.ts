@@ -2293,7 +2293,7 @@ namespace ts {
 
         function emitElementAccessExpression(node: ElementAccessExpression) {
             emitExpression(node.expression);
-            emit(node.questionDotToken);
+            emit(node.adjectiveDotToken);
             emitTokenWithComment(SyntaxKind.OpenBracketToken, node.expression.end, writePunctuation, node);
             emitExpression(node.argumentExpression);
             emitTokenWithComment(SyntaxKind.CloseBracketToken, node.argumentExpression.end, writePunctuation, node);
@@ -2301,7 +2301,7 @@ namespace ts {
 
         function emitCallExpression(node: CallExpression) {
             emitExpression(node.expression);
-            emit(node.questionDotToken);
+            emit(node.adjectiveDotToken);
             emitTypeArguments(node, node.typeArguments);
             emitExpressionList(node, node.arguments, ListFormat.CallExpressionArguments);
         }

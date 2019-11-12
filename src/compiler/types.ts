@@ -153,6 +153,7 @@ namespace ts {
         SemicolonToken,
         CommaToken,
         QuestionDotToken,
+        TildeDotToken,
         LessThanToken,
         LessThanSlashToken,
         GreaterThanToken,
@@ -740,6 +741,8 @@ namespace ts {
     export type DotDotDotToken = Token<SyntaxKind.DotDotDotToken>;
     export type QuestionToken = Token<SyntaxKind.QuestionToken>;
     export type QuestionDotToken = Token<SyntaxKind.QuestionDotToken>;
+    export type TildeDotToken = Token<SyntaxKind.TildeDotToken>;
+    export type AdjectiveDotToken = QuestionDotToken | TildeDotToken;
     export type ExclamationToken = Token<SyntaxKind.ExclamationToken>;
     export type ColonToken = Token<SyntaxKind.ColonToken>;
     export type EqualsToken = Token<SyntaxKind.EqualsToken>;
@@ -1817,7 +1820,7 @@ namespace ts {
     export interface PropertyAccessExpression extends MemberExpression, NamedDeclaration {
         kind: SyntaxKind.PropertyAccessExpression;
         expression: LeftHandSideExpression;
-        questionDotToken?: QuestionDotToken;
+        adjectiveDotToken: AdjectiveDotToken | undefined;
         name: Identifier;
     }
 
@@ -1827,7 +1830,7 @@ namespace ts {
 
     /* @internal */
     export interface PropertyAccessChainRoot extends PropertyAccessChain {
-        questionDotToken: QuestionDotToken;
+        adjectiveDotToken: AdjectiveDotToken;
     }
 
     export interface SuperPropertyAccessExpression extends PropertyAccessExpression {
@@ -1843,7 +1846,7 @@ namespace ts {
     export interface ElementAccessExpression extends MemberExpression {
         kind: SyntaxKind.ElementAccessExpression;
         expression: LeftHandSideExpression;
-        questionDotToken?: QuestionDotToken;
+        adjectiveDotToken: AdjectiveDotToken | undefined;
         argumentExpression: Expression;
     }
 
@@ -1853,7 +1856,7 @@ namespace ts {
 
     /* @internal */
     export interface ElementAccessChainRoot extends ElementAccessChain {
-        questionDotToken: QuestionDotToken;
+        adjectiveDotToken: AdjectiveDotToken;
     }
 
     export interface SuperElementAccessExpression extends ElementAccessExpression {
@@ -1866,7 +1869,7 @@ namespace ts {
     export interface CallExpression extends LeftHandSideExpression, Declaration {
         kind: SyntaxKind.CallExpression;
         expression: LeftHandSideExpression;
-        questionDotToken?: QuestionDotToken;
+        adjectiveDotToken: AdjectiveDotToken | undefined;
         typeArguments?: NodeArray<TypeNode>;
         arguments: NodeArray<Expression>;
     }
@@ -1877,7 +1880,7 @@ namespace ts {
 
     /* @internal */
     export interface CallChainRoot extends CallChain {
-        questionDotToken: QuestionDotToken;
+        adjectiveDotToken: AdjectiveDotToken;
     }
 
     export type OptionalChain =
@@ -1953,7 +1956,7 @@ namespace ts {
         tag: LeftHandSideExpression;
         typeArguments?: NodeArray<TypeNode>;
         template: TemplateLiteral;
-        /*@internal*/ questionDotToken?: QuestionDotToken; // NOTE: Invalid syntax, only used to report a grammar error.
+        /*@internal*/ questionDotToken: QuestionDotToken | undefined; // NOTE: Invalid syntax, only used to report a grammar error.
     }
 
     export type CallLikeExpression = CallExpression | NewExpression | TaggedTemplateExpression | Decorator | JsxOpeningLikeElement;

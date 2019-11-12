@@ -4897,7 +4897,7 @@ namespace ts {
     }
 
     export function getDotOrQuestionDotToken(node: PropertyAccessExpression) {
-        return node.questionDotToken || createNode(SyntaxKind.DotToken, node.expression.end, node.name.pos) as DotToken;
+        return node.adjectiveDotToken || createNode(SyntaxKind.DotToken, node.expression.end, node.name.pos) as DotToken;
     }
 }
 
@@ -5949,7 +5949,7 @@ namespace ts {
 
     /* @internal */
     export function isOptionalChainRoot(node: Node): node is OptionalChainRoot {
-        return isOptionalChain(node) && !!node.questionDotToken;
+        return isOptionalChain(node) && !!node.adjectiveDotToken && node.adjectiveDotToken.kind === SyntaxKind.QuestionDotToken;
     }
 
     /**
