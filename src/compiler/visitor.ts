@@ -457,10 +457,13 @@ namespace ts {
 
             case SyntaxKind.PropertyAccessExpression:
                 if (node.flags & NodeFlags.OptionalChain) {
-                    return updatePropertyAccessChain(<PropertyAccessChain>node,
-                        visitNode((<PropertyAccessChain>node).expression, visitor, isExpression),
-                        visitNode((<PropertyAccessChain>node).questionDotToken, visitor, isToken),
-                        visitNode((<PropertyAccessChain>node).name, visitor, isIdentifier));
+                    const adjectiveDotToken = (<CallChain>node).adjectiveDotToken;
+                    if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+                        return updatePropertyAccessChain(<PropertyAccessChain>node,
+                            visitNode((<PropertyAccessChain>node).expression, visitor, isExpression),
+                            visitNode(adjectiveDotToken, visitor, isToken),
+                            visitNode((<PropertyAccessChain>node).name, visitor, isIdentifier));
+                    }
                 }
                 return updatePropertyAccess(<PropertyAccessExpression>node,
                     visitNode((<PropertyAccessExpression>node).expression, visitor, isExpression),
@@ -468,10 +471,13 @@ namespace ts {
 
             case SyntaxKind.ElementAccessExpression:
                 if (node.flags & NodeFlags.OptionalChain) {
-                    return updateElementAccessChain(<ElementAccessChain>node,
-                        visitNode((<ElementAccessChain>node).expression, visitor, isExpression),
-                        visitNode((<ElementAccessChain>node).questionDotToken, visitor, isToken),
-                        visitNode((<ElementAccessChain>node).argumentExpression, visitor, isExpression));
+                    const adjectiveDotToken = (<CallChain>node).adjectiveDotToken;
+                    if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+                        return updateElementAccessChain(<ElementAccessChain>node,
+                            visitNode((<ElementAccessChain>node).expression, visitor, isExpression),
+                            visitNode(adjectiveDotToken, visitor, isToken),
+                            visitNode((<ElementAccessChain>node).argumentExpression, visitor, isExpression));
+                    }
                 }
                 return updateElementAccess(<ElementAccessExpression>node,
                     visitNode((<ElementAccessExpression>node).expression, visitor, isExpression),
@@ -479,11 +485,14 @@ namespace ts {
 
             case SyntaxKind.CallExpression:
                 if (node.flags & NodeFlags.OptionalChain) {
-                    return updateCallChain(<CallChain>node,
-                        visitNode((<CallChain>node).expression, visitor, isExpression),
-                        visitNode((<CallChain>node).questionDotToken, visitor, isToken),
-                        nodesVisitor((<CallChain>node).typeArguments, visitor, isTypeNode),
-                        nodesVisitor((<CallChain>node).arguments, visitor, isExpression));
+                    const adjectiveDotToken = (<CallChain>node).adjectiveDotToken;
+                    if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+                        return updateCallChain(<CallChain>node,
+                            visitNode((<CallChain>node).expression, visitor, isExpression),
+                            visitNode(adjectiveDotToken, visitor, isToken),
+                            nodesVisitor((<CallChain>node).typeArguments, visitor, isTypeNode),
+                            nodesVisitor((<CallChain>node).arguments, visitor, isExpression));
+                    }
                 }
                 return updateCall(<CallExpression>node,
                     visitNode((<CallExpression>node).expression, visitor, isExpression),

@@ -1,4 +1,41 @@
 
+# Agoric's Typescript Fork
+
+NOTE: This fork is not fully functional.  Notably, the rewriting of tildot (`~.`) is incorrect and its Promises don't have autocompletion.
+
+That being said, you can use this fork to make VSCode understand tildot enough so that your code won't show parse errors.  Other editors that use the Typescript Language Server also should work.
+
+## VSCode
+
+Here are the easiest instructions for installing `@agoric/typescript` in VSCode.  Variants of these instructions will work, but are unsupported.
+
+1. Install this package globally: `npm install -g @agoric/typescript`.
+2. Get the path to its installed directory:
+```sh
+npm list -g @agoric/typescript
+/Users/michael/.nvm/versions/node/v12.11.1/lib
+└── @agoric/typescript@3.8.0 
+```
+(thus the path is `/Users/michael/.nvm/versions/node/v12.11.1/lib/node_modules/@agoric/typescript`).  You can verify this directory by listing the `lib/tsserver.js` file within it:
+```sh
+ls -l /Users/michael/.nvm/versions/node/v12.11.1/lib/node_modules/\@agoric/typescript/lib/tsserver.js 
+-rw-r--r--  1 michael  staff  8353156 Oct 26  1985 /Users/michael/.nvm/versions/node/v12.11.1/lib/node_modules/@agoric/typescript/lib/tsserver.js
+```
+2. Go to `File > Preferences > Settings` or `Code > Preferences > Settings`.
+3. Pick the User settings tab.
+4. Search for `tsdk` in the search bar.
+5. Click `Edit in settings.json`.
+6. Add the following setting (pointing to the installed directory containing `tsserver.js`):
+```js
+{
+  "typescript.tsdk": "/Users/michael/.nvm/versions/node/v12.11.1/lib/node_modules/@agoric/typescript/lib"
+}
+```
+
+After that, your opened Javascript/TypeScript sources will understand tildot.
+
+If they still show syntax errors, you may have to go to the Command Palette while a `.js` file is open, and choose `Typescript: Select TypeScript Version...` to select the correct `+tildot` version of the TypeScript SDK.  If the TypeScript version is not displayed, carefully follow the above instructions again.
+
 # TypeScript
 
 [![Build Status](https://travis-ci.org/microsoft/TypeScript.svg?branch=master)](https://travis-ci.org/microsoft/TypeScript)

@@ -1525,7 +1525,7 @@ namespace ts {
         }
 
         function bindOptionalChainRest(node: OptionalChain) {
-            bind(node.questionDotToken);
+            bind(node.adjectiveDotToken);
             switch (node.kind) {
                 case SyntaxKind.PropertyAccessExpression:
                     bind(node.name);
@@ -1552,7 +1552,8 @@ namespace ts {
             // and build it's CFA graph as if it were the first condition (`a && ...`). Then we bind the rest
             // of the node as part of the "true" branch, and continue to do so as we ascend back up to the outermost
             // chain node. We then treat the entire node as the right side of the expression.
-            const preChainLabel = node.questionDotToken ? createBranchLabel() : undefined;
+            const preChainLabel = (node.adjectiveDotToken && node.adjectiveDotToken.kind === SyntaxKind.QuestionDotToken)
+                ? createBranchLabel() : undefined;
             bindOptionalExpression(node.expression, preChainLabel || trueTarget, falseTarget);
             if (preChainLabel) {
                 currentFlow = finishFlowLabel(preChainLabel);

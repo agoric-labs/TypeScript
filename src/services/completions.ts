@@ -350,7 +350,7 @@ namespace ts.Completions {
         // Somehow there was a global with a non-identifier name. Hopefully someone will complain about getting a "foo bar" global completion and provide a repro.
         else if ((useBraces || insertQuestionDot) && propertyAccessToConvert) {
             insertText = useBraces ? needsConvertPropertyAccess ? `[${quote(name, preferences)}]` : `[${name}]` : name;
-            if (insertQuestionDot || propertyAccessToConvert.questionDotToken) {
+            if (insertQuestionDot || (propertyAccessToConvert.adjectiveDotToken && propertyAccessToConvert.adjectiveDotToken.kind === SyntaxKind.QuestionDotToken)) {
                 insertText = `?.${insertText}`;
             }
 

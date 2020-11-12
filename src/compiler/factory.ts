@@ -1067,7 +1067,10 @@ namespace ts {
 
     export function updatePropertyAccess(node: PropertyAccessExpression, expression: Expression, name: Identifier) {
         if (isOptionalChain(node)) {
-            return updatePropertyAccessChain(node, expression, node.questionDotToken, name);
+            const adjectiveDotToken = node.adjectiveDotToken;
+            if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+                return updatePropertyAccessChain(node, expression, adjectiveDotToken, name);
+            }
         }
         // Because we are updating existed propertyAccess we want to inherit its emitFlags
         // instead of using the default from createPropertyAccess
@@ -1077,11 +1080,13 @@ namespace ts {
             : node;
     }
 
-    export function createPropertyAccessChain(expression: Expression, questionDotToken: QuestionDotToken | undefined, name: string | Identifier) {
+    export function createPropertyAccessChain(expression: Expression, adjectiveDotToken: AdjectiveDotToken | undefined, name: string | Identifier) {
         const node = <PropertyAccessChain>createSynthesizedNode(SyntaxKind.PropertyAccessExpression);
-        node.flags |= NodeFlags.OptionalChain;
+        if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+            node.flags |= NodeFlags.OptionalChain;
+        }
         node.expression = parenthesizeForAccess(expression);
-        node.questionDotToken = questionDotToken;
+        node.adjectiveDotToken = adjectiveDotToken;
         node.name = asName(name);
         setEmitFlags(node, EmitFlags.NoIndentation);
         return node;
@@ -1092,7 +1097,7 @@ namespace ts {
         // Because we are updating an existing PropertyAccessChain we want to inherit its emitFlags
         // instead of using the default from createPropertyAccess
         return node.expression !== expression
-            || node.questionDotToken !== questionDotToken
+            || node.adjectiveDotToken !== questionDotToken
             || node.name !== name
             ? updateNode(setEmitFlags(createPropertyAccessChain(expression, questionDotToken, name), getEmitFlags(node)), node)
             : node;
@@ -1107,7 +1112,10 @@ namespace ts {
 
     export function updateElementAccess(node: ElementAccessExpression, expression: Expression, argumentExpression: Expression) {
         if (isOptionalChain(node)) {
-            return updateElementAccessChain(node, expression, node.questionDotToken, argumentExpression);
+            const adjectiveDotToken = node.adjectiveDotToken;
+            if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+                return updateElementAccessChain(node, expression, adjectiveDotToken, argumentExpression);
+            }
         }
         return node.expression !== expression
             || node.argumentExpression !== argumentExpression
@@ -1115,11 +1123,13 @@ namespace ts {
             : node;
     }
 
-    export function createElementAccessChain(expression: Expression, questionDotToken: QuestionDotToken | undefined, index: number | Expression) {
+    export function createElementAccessChain(expression: Expression, adjectiveDotToken: AdjectiveDotToken | undefined, index: number | Expression) {
         const node = <ElementAccessChain>createSynthesizedNode(SyntaxKind.ElementAccessExpression);
-        node.flags |= NodeFlags.OptionalChain;
+        if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+            node.flags |= NodeFlags.OptionalChain;
+        }
         node.expression = parenthesizeForAccess(expression);
-        node.questionDotToken = questionDotToken;
+        node.adjectiveDotToken = adjectiveDotToken;
         node.argumentExpression = asExpression(index);
         return node;
     }
@@ -1127,7 +1137,7 @@ namespace ts {
     export function updateElementAccessChain(node: ElementAccessChain, expression: Expression, questionDotToken: QuestionDotToken | undefined, argumentExpression: Expression) {
         Debug.assert(!!(node.flags & NodeFlags.OptionalChain), "Cannot update an ElementAccessExpression using updateElementAccessChain. Use updateElementAccess instead.");
         return node.expression !== expression
-            || node.questionDotToken !== questionDotToken
+            || node.adjectiveDotToken !== questionDotToken
             || node.argumentExpression !== argumentExpression
             ? updateNode(createElementAccessChain(expression, questionDotToken, argumentExpression), node)
             : node;
@@ -1143,7 +1153,10 @@ namespace ts {
 
     export function updateCall(node: CallExpression, expression: Expression, typeArguments: readonly TypeNode[] | undefined, argumentsArray: readonly Expression[]) {
         if (isOptionalChain(node)) {
-            return updateCallChain(node, expression, node.questionDotToken, typeArguments, argumentsArray);
+            const adjectiveDotToken = node.adjectiveDotToken;
+            if (!adjectiveDotToken || adjectiveDotToken.kind === SyntaxKind.QuestionDotToken) {
+                return updateCallChain(node, expression, adjectiveDotToken, typeArguments, argumentsArray);
+            }
         }
         return node.expression !== expression
             || node.typeArguments !== typeArguments
@@ -1156,7 +1169,7 @@ namespace ts {
         const node = <CallChain>createSynthesizedNode(SyntaxKind.CallExpression);
         node.flags |= NodeFlags.OptionalChain;
         node.expression = parenthesizeForAccess(expression);
-        node.questionDotToken = questionDotToken;
+        node.adjectiveDotToken = questionDotToken;
         node.typeArguments = asNodeArray(typeArguments);
         node.arguments = parenthesizeListElements(createNodeArray(argumentsArray));
         return node;
@@ -1165,7 +1178,7 @@ namespace ts {
     export function updateCallChain(node: CallChain, expression: Expression, questionDotToken: QuestionDotToken | undefined, typeArguments: readonly TypeNode[] | undefined, argumentsArray: readonly Expression[]) {
         Debug.assert(!!(node.flags & NodeFlags.OptionalChain), "Cannot update a CallExpression using updateCallChain. Use updateCall instead.");
         return node.expression !== expression
-            || node.questionDotToken !== questionDotToken
+            || node.adjectiveDotToken !== questionDotToken
             || node.typeArguments !== typeArguments
             || node.arguments !== argumentsArray
             ? updateNode(createCallChain(expression, questionDotToken, typeArguments, argumentsArray), node)

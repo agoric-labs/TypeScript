@@ -182,6 +182,7 @@ namespace ts {
         "^": SyntaxKind.CaretToken,
         "!": SyntaxKind.ExclamationToken,
         "~": SyntaxKind.TildeToken,
+        "~.": SyntaxKind.TildeDotToken,
         "&&": SyntaxKind.AmpersandAmpersandToken,
         "||": SyntaxKind.BarBarToken,
         "?": SyntaxKind.QuestionToken,
@@ -1881,6 +1882,10 @@ namespace ts {
                         return token = SyntaxKind.CloseBraceToken;
                     case CharacterCodes.tilde:
                         pos++;
+                        if (text.charCodeAt(pos) === CharacterCodes.dot && !isDigit(text.charCodeAt(pos + 1))) {
+                          pos++;
+                          return token = SyntaxKind.TildeDotToken;
+                        }
                         return token = SyntaxKind.TildeToken;
                     case CharacterCodes.at:
                         pos++;
